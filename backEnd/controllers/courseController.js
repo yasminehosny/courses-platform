@@ -124,9 +124,25 @@ export const updateCourse = async (req, res, next) => {
       }
     }
 
+
+    let imageUrl = course.imageUrl; 
+    
+    if (req.file) {
+      
+      if (course.imageUrl) {
+        const oldImagePath = course.imageUrl.replace('http://localhost:4000/', '');
+        const fullPath = path.join(process.cwd(), oldImagePath);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      }
+      
+      imageUrl = `http://localhost:4000/uploads/${req.file.filename}`;
+    }
+
     const updatedCourse = await Course.findByIdAndUpdate(
       id,
-      { title, description, categoryID, price },
+      { title, description, categoryID, price, imageUrl },
       { new: true }
     );
 
@@ -136,6 +152,8 @@ export const updateCourse = async (req, res, next) => {
     next(err);
   }
 };
+
+
 
 
 export const deleteCourse = async (req, res, next) => {
