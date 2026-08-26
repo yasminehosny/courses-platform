@@ -45,6 +45,46 @@ export const addLesson = (courseId, data) => api.post(`/courses/${courseId}/less
 export const updateLesson = (courseId, id, data) => api.put(`/courses/${courseId}/lessons/${id}`, data);
 export const deleteLesson = (courseId, id) => api.delete(`/courses/${courseId}/lessons/${id}`);
 
+// ── Direct-to-Cloudinary video upload (bypasses Vercel function limits) ──
+export const getUploadSignature = () => api.get('/upload/signature');
+
+export const uploadVideoToCloudinary = (file, onProgress) => {
+  return getUploadSignature().then((sig) => {
+    const { signature, timestamp, folder, cloudName, apiKey } = sig;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('folder', folder);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          onProgress(percent);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const result = JSON.parse(xhr.responseText);
+          resolve(result.secure_url);
+        } else {
+          reject(new Error('Video upload to Cloudinary failed'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during video upload'));
+      xhr.send(formData);
+    });
+  });
+};
+
 // ── Enrollment ──
 export const enrollCourse = (courseId) => api.post(`/courses/${courseId}/enroll`);
 export const unenrollCourse = (courseId) => api.delete(`/courses/${courseId}/enroll`);

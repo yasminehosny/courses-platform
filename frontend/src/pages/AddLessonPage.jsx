@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { addLesson } from '../services/api';
+import { addLesson, uploadVideoToCloudinary } from '../services/api';
 import { FaExclamationTriangle, FaArrowLeft, FaFilm } from 'react-icons/fa';
 
 export default function AddLessonPage() {
@@ -11,6 +11,7 @@ export default function AddLessonPage() {
   const [videoPreview, setVideoPreview] = useState(null);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const update = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
@@ -31,15 +32,18 @@ export default function AddLessonPage() {
     if (title.length < 3) { setErr('Lesson title must be at least 3 characters'); return; }
     if (content.length < 20) { setErr('Lesson content must be at least 20 characters'); return; }
     if (Number.isNaN(duration) || duration < 1) { setErr('Duration must be at least 1 minute'); return; }
-    setLoading(true); setErr('');
+    setLoading(true); setErr(''); setUploadProgress(0);
     try {
-      // ✅ FormData عشان نبعت الفيديو
-      const fd = new FormData();
-      fd.append('title', title);
-      fd.append('content', content);
-      fd.append('duration', duration);
-      if (videoFile) fd.append('video', videoFile);
-      await addLesson(courseId, fd);
+      let videoUrl = null;
+
+      // ✅ الفيديو بيترفع مباشرة لـ Cloudinary من المتصفح، مش عن طريق السيرفر
+      if (videoFile) {
+        videoUrl = await uploadVideoToCloudinary(videoFile, (percent) => {
+          setUploadProgress(percent);
+        });
+      }
+
+      await addLesson(courseId, { title, content, duration, videoUrl });
       navigate('/dashboard');
     } catch (e) {
       setErr(e.message || 'Failed to add lesson');
@@ -91,7 +95,7 @@ export default function AddLessonPage() {
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-primary" style={{ flex: 1, padding: 13 }} type="submit" disabled={loading}>
-            {loading ? 'Uploading...' : 'Add Lesson'}
+            {loading ? (videoFile ? `Uploading video... ${uploadProgress}%` : 'Saving...') : 'Add Lesson'}
           </button>
           <button className="btn btn-outline" type="button" onClick={() => navigate('/dashboard')}>Cancel</button>
         </div>

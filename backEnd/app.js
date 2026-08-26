@@ -14,6 +14,7 @@ import enrollmentRoutes from "./routers/enrollmentRoutes.js";
 import { getMyEnrollments } from "./controllers/enrollmentController.js";
 import { authMiddleware, allowedTo } from "./middelwares/authMW.js";
 import commentRoutes from "./routers/commentRoutes.js";
+import uploadRoutes from "./routers/uploadRoutes.js";
 import { connectDB } from "./config/db.js";
 const app = express();
 // Debug: show whether MONGO_URI is loaded
@@ -83,6 +84,7 @@ app.get(
   getMyEnrollments
 );
 app.use("/lessons/:lessonId/comments", commentRoutes);
+app.use("/upload", uploadRoutes);
 // Error handling middleware
 app.use(errorHandlingMW);
 export default app;

@@ -1,5 +1,4 @@
 
-import upload from "../utlis/multer.js";
 import { Router } from "express";
 import {
   addLesson,
@@ -25,7 +24,6 @@ router.post(
   "/",
   authMiddleware,
   allowedTo("instructor"),
-  upload.single("video"), 
   lessonValidation,
   validationMiddleware,
   addLesson
@@ -35,7 +33,6 @@ router.put(
   "/:id",
   authMiddleware,
   allowedTo("instructor"),
-  upload.single("video"),
   lessonValidation,
   validationMiddleware,
   updateLesson
