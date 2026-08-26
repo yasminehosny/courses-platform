@@ -31,7 +31,15 @@ router.post(
   addLesson
 );
 
-router.put("/:id", authMiddleware, allowedTo("instructor"), lessonValidation, validationMiddleware, updateLesson);
+router.put(
+  "/:id",
+  authMiddleware,
+  allowedTo("instructor"),
+  upload.single("video"),
+  lessonValidation,
+  validationMiddleware,
+  updateLesson
+);
 router.delete("/:id", authMiddleware, allowedTo("instructor"), deleteLesson);
 
 export default router;

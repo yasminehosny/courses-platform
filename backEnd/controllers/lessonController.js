@@ -1,7 +1,6 @@
 import Lesson from "../models/lesson.js";
 import Course from "../models/course.js";
 import HttpError from "../utlis/httpError.js";
-import { getUploadUrl } from "../utlis/getBaseUrl.js";
 
 export const addLesson = async (req, res, next) => {
   try {
@@ -26,7 +25,7 @@ export const addLesson = async (req, res, next) => {
     const order = lessonsCount + 1;
 
     const videoUrl = req.file
-      ? getUploadUrl(req.file.filename)
+      ? req.file.path
       : req.body.videoUrl;
 
     const lesson = new Lesson({
@@ -81,7 +80,7 @@ export const getLessonById = async (req, res, next) => {
 export const updateLesson = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, content, videoUrl, duration } = req.body;
+    const { title, content, duration } = req.body;
 
     const lesson = await Lesson.findById(id);
     if (!lesson) {
@@ -91,6 +90,14 @@ export const updateLesson = async (req, res, next) => {
     const course = await Course.findById(lesson.courseID);
     if (course.instructorID.toString() !== req.user.userID) {
       return next(new HttpError(403, "You are not authorized"));
+    }
+
+    let videoUrl = lesson.videoUrl;
+
+    if (req.file) {
+      videoUrl = req.file.path; // رابط Cloudinary الكامل
+    } else if (req.body.videoUrl) {
+      videoUrl = req.body.videoUrl;
     }
 
     const updatedLesson = await Lesson.findByIdAndUpdate(
