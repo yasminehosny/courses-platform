@@ -34,7 +34,7 @@ temp/
 Thumbs.db
 
 # Backend specific
-backEnd/uploads/
+
 backEnd/.env
 
 # Frontend specific

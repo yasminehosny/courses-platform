@@ -2,9 +2,6 @@ import Course from "../models/course.js";
 import Category from "../models/category.js";
 import Enrollment from "../models/enrollment.js";
 import HttpError from "../utlis/httpError.js";
-import fs from "fs";
-import path from "path";
-import { getUploadUrl } from "../utlis/getBaseUrl.js";
 
 
 export const addCourse = async (req, res, next) => {
@@ -23,7 +20,7 @@ export const addCourse = async (req, res, next) => {
       return next(new HttpError(404, "Category not found"));
     }
 
-    const imageUrl = req.file ? getUploadUrl(req.file.filename) : null;
+    const imageUrl = req.file ? req.file.path : null;
 
     const course = new Course({
       title,
@@ -57,7 +54,7 @@ export const getAllCourses = async (req, res, next) => {
     if (req.query.categoryID) filter.categoryID = req.query.categoryID;
 
     if (req.query.search) {
-     
+
       const escaped = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.title = { $regex: escaped, $options: 'i' };
     }
@@ -92,7 +89,7 @@ export const getCourseById = async (req, res, next) => {
       .populate("categoryID", "name");
 
     if (!course) {
-      return next(new HttpError(404,"Course not found"));
+      return next(new HttpError(404, "Course not found"));
     }
 
     res.status(200).json({ course });
@@ -109,36 +106,25 @@ export const updateCourse = async (req, res, next) => {
 
     const course = await Course.findById(id);
     if (!course) {
-      return next(new HttpError(404,"Course not found"));
+      return next(new HttpError(404, "Course not found"));
     }
 
-    
+
     if (course.instructorID.toString() !== req.user.userID) {
-      return next(new HttpError(403,"You are not authorized"));
+      return next(new HttpError(403, "You are not authorized"));
     }
 
     if (categoryID) {
       const existingCategory = await Category.findById(categoryID);
       if (!existingCategory) {
-        return next(new HttpError(404,"Category not found"));
+        return next(new HttpError(404, "Category not found"));
       }
     }
 
+    let imageUrl = course.imageUrl;
 
-    let imageUrl = course.imageUrl; 
-    
     if (req.file) {
-      if (course.imageUrl) {
-        const oldFilename = course.imageUrl.split("/uploads/")[1];
-        if (oldFilename) {
-          const fullPath = path.join(process.cwd(), "uploads", oldFilename);
-          if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
-          }
-        }
-      }
-
-      imageUrl = getUploadUrl(req.file.filename);
+      imageUrl = req.file.path; // رابط Cloudinary الكامل
     }
 
     const updatedCourse = await Course.findByIdAndUpdate(
@@ -163,12 +149,12 @@ export const deleteCourse = async (req, res, next) => {
 
     const course = await Course.findById(id);
     if (!course) {
-      return next(new HttpError(404,"Course not found"));
+      return next(new HttpError(404, "Course not found"));
     }
 
-    
+
     if (course.instructorID.toString() !== req.user.userID) {
-      return next(new HttpError(403,"You are not authorized"));
+      return next(new HttpError(403, "You are not authorized"));
     }
 
     await Course.findByIdAndDelete(id);
@@ -196,13 +182,13 @@ export const rateCourse = async (req, res, next) => {
     const studentID = req.user.userID;
 
     const course = await Course.findById(id);
-    if (!course) return next(new HttpError( 404,"Course not found"));
+    if (!course) return next(new HttpError(404, "Course not found"));
 
-    
+
     const enrollment = await Enrollment.findOne({ studentID, courseID: id });
     if (!enrollment) return next(new HttpError(403, "You must be enrolled to rate this course"));
 
-    
+
     const existingIndex = course.ratings.findIndex(
       r => r.studentID.toString() === studentID
     );
@@ -214,7 +200,7 @@ export const rateCourse = async (req, res, next) => {
       course.ratings.push({ studentID, rating, review });
     }
 
-    
+
     const total = course.ratings.length;
     const sum = course.ratings.reduce((acc, r) => acc + r.rating, 0);
     course.avgRating = Math.round((sum / total) * 10) / 10;
