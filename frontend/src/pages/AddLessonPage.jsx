@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { addLesson, uploadVideoToCloudinary } from '../services/api';
+import { addLesson, uploadVideoToCloudinary, getApiErrorMessage } from '../services/api';
 import { FaExclamationTriangle, FaArrowLeft, FaFilm } from 'react-icons/fa';
 
 export default function AddLessonPage() {
@@ -11,6 +11,7 @@ export default function AddLessonPage() {
   const [videoPreview, setVideoPreview] = useState(null);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const update = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
@@ -32,23 +33,22 @@ export default function AddLessonPage() {
     if (title.length < 3) { setErr('Lesson title must be at least 3 characters'); return; }
     if (content.length < 20) { setErr('Lesson content must be at least 20 characters'); return; }
     if (Number.isNaN(duration) || duration < 1) { setErr('Duration must be at least 1 minute'); return; }
-    setLoading(true); setErr(''); setUploadProgress(0);
+    if (!videoFile) { setErr('Please select a video file'); return; }
+
+    setLoading(true); setSaving(false); setErr(''); setUploadProgress(0);
     try {
-      let videoUrl = null;
+      const videoUrl = await uploadVideoToCloudinary(videoFile, (percent) => {
+        setUploadProgress(percent);
+      });
 
-      // ✅ الفيديو بيترفع مباشرة لـ Cloudinary من المتصفح، مش عن طريق السيرفر
-      if (videoFile) {
-        videoUrl = await uploadVideoToCloudinary(videoFile, (percent) => {
-          setUploadProgress(percent);
-        });
-      }
-
+      setSaving(true);
       await addLesson(courseId, { title, content, duration, videoUrl });
       navigate('/dashboard');
     } catch (e) {
-      setErr(e.message || 'Failed to add lesson');
+      setErr(getApiErrorMessage(e, 'Failed to add lesson'));
     }
     setLoading(false);
+    setSaving(false);
   };
 
   return (
@@ -70,7 +70,7 @@ export default function AddLessonPage() {
 
         {/* ✅ Video Upload من اللوكال */}
         <div className="form-group">
-          <label className="form-label">Video File</label>
+          <label className="form-label">Video File <span>*</span></label>
           <div className="file-upload">
             <input type="file" accept="video/*" onChange={handleVideo} />
             {videoPreview ? (
@@ -95,7 +95,7 @@ export default function AddLessonPage() {
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-primary" style={{ flex: 1, padding: 13 }} type="submit" disabled={loading}>
-            {loading ? (videoFile ? `Uploading video... ${uploadProgress}%` : 'Saving...') : 'Add Lesson'}
+            {loading ? (saving ? 'Saving lesson...' : `Uploading video... ${uploadProgress}%`) : 'Add Lesson'}
           </button>
           <button className="btn btn-outline" type="button" onClick={() => navigate('/dashboard')}>Cancel</button>
         </div>

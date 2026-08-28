@@ -41,7 +41,7 @@ export const getCourseProgress = (courseId) =>
   api.get(`/courses/${courseId}/enroll/progress`);
 export const getLessons = (courseId) => api.get(`/courses/${courseId}/lessons`);
 export const getLessonById = (courseId, id) => api.get(`/courses/${courseId}/lessons/${id}`);
-export const addLesson = (courseId, data) => api.post(`/courses/${courseId}/lessons`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const addLesson = (courseId, data) => api.post(`/courses/${courseId}/lessons`, data);
 export const updateLesson = (courseId, id, data) => api.put(`/courses/${courseId}/lessons/${id}`, data);
 export const deleteLesson = (courseId, id) => api.delete(`/courses/${courseId}/lessons/${id}`);
 
